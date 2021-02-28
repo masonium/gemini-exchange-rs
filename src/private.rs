@@ -62,7 +62,7 @@ impl Private {
 
     /// Create a signature based on the base64-encoded payload and the
     /// provided secret.
-    fn sign(secret: &str, payload: &str) -> String {
+    pub(crate) fn sign(secret: &str, payload: &str) -> String {
 	// hex(hmac<sha384>(payload, key=secret))
 	//use hex::ToHex;
 	let mut hasher = Hmac::new(Sha384::new(), secret.as_bytes());

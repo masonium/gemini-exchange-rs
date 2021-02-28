@@ -50,26 +50,57 @@ pub struct Heartbeat {
 #[derive(Deserialize, Debug)]
 #[serde(tag = "type")]
 #[serde(rename_all = "snake_case")]
-pub enum InputMessage {
+pub enum InputMDMessage {
     L2Updates(Level2),
     Trade(Trade),
     Heartbeat(Heartbeat)
 }
 
 #[derive(Debug)]
-pub enum Message {
+pub enum MarketDataMessage {
     Level2(Level2),
     Trade(Trade),
     Heartbeat(Heartbeat),
     InternalError(GError)
 }
 
-impl From<InputMessage> for Message {
-    fn from(im: InputMessage) -> Self {
+impl From<InputMDMessage> for MarketDataMessage {
+    fn from(im: InputMDMessage) -> Self {
 	match im {
-	    InputMessage::L2Updates(l2) => Message::Level2(l2),
-	    InputMessage::Trade(t) => Message::Trade(t),
-	    InputMessage::Heartbeat(h) => Message::Heartbeat(h)
+	    InputMDMessage::L2Updates(l2) => MarketDataMessage::Level2(l2),
+	    InputMDMessage::Trade(t) => MarketDataMessage::Trade(t),
+	    InputMDMessage::Heartbeat(h) => MarketDataMessage::Heartbeat(h)
+	}
+    }
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct Ack {
+    account_id: u64,
+    subscription_id: String,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(tag = "type")]
+#[serde(rename_all = "snake_case")]
+pub enum InputOrderMessage {
+    Heartbeat(Heartbeat),
+    SubscriptionAck(Ack),
+}
+
+#[derive(Debug)]
+pub enum OrderMessage {
+    Heartbeat(Heartbeat),
+    SubscriptionAck(Ack),
+    InternalError(GError)
+}
+
+impl From<InputOrderMessage> for OrderMessage {
+    fn from(im: InputOrderMessage) -> Self {
+	match im {
+	    InputOrderMessage::SubscriptionAck(t) => OrderMessage::SubscriptionAck(t),
+	    InputOrderMessage::Heartbeat(h) => OrderMessage::Heartbeat(h)
 	}
     }
 }
