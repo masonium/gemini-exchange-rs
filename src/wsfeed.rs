@@ -5,7 +5,7 @@ use serde_json;
 use serde::Serialize;
 use tokio_tungstenite::{connect_async, tungstenite::Message as TMessage};
 use crate::types::GError;
-use crate::structs::wsfeed::{InputMDMessage, MarketDataMessage, InputOrderMessage, OrderMessage};
+use crate::structs::wsfeed::{InputMDMessage, MarketDataMessage, InputOrderMessage, OrderMessage, OrderStatus};
 use crate::{Private, structs::private::Payload};
 
 pub struct WSFeed;
@@ -45,14 +45,19 @@ fn convert_md_msg(msg: TMessage) -> MarketDataMessage {
 
 fn convert_order_msg(msg: TMessage) -> OrderMessage {
     match msg {
-	TMessage::Text(str) => serde_json::from_str::<InputOrderMessage>(&str)
-	    .map(|x| x.into())
-	    .unwrap_or_else(|e| {
-	    OrderMessage::InternalError(GError::SerdeDe {
-		error: e,
-		data: str,
-	    })
-	}),
+	TMessage::Text(str) =>
+	    if let Ok(des) = serde_json::from_str::<InputOrderMessage>(&str) {
+		des.into()
+	    } else {
+		// try to deserialize a list of order status messages
+		match serde_json::from_str::<Vec<OrderStatus>>(&str) {
+		    Ok(orders) => OrderMessage::Orders(orders),
+		    Err(e) => OrderMessage::InternalError(GError::SerdeDe {
+			error: e,
+			data: str,
+		    })
+		}
+	    },
 	_ => unreachable!(), // filtered in stream
     }
 }
@@ -88,21 +93,27 @@ impl WSFeed {
     }
 
     pub async fn connect_private_order_events(uri: &str, api_key: &str, api_secret: &str) -> Result<impl GeminiStream<OrderMessage>, GError> {
-	let url = uri.to_string() + "/v1/order/events";
-	let payload = Payload::empty(&url);
-	let payload_str = base64::encode(serde_json::to_string(&payload).expect("serialize empty payload"));
-	let signature = Private::sign(api_secret, &payload_str);
+	let endpoint = "/v1/order/events";
+	let url = uri.to_string() + endpoint;
+	let payload = {
+	    let body = Payload::empty(&endpoint);
+	    let payload_str = serde_json::to_string(&body).map_err(GError::SerdeSer)?;
+	    base64::encode(&payload_str)
+	};
+
+	let signature = Private::sign(api_secret, &payload);
 
 	let req = hyper::Request::builder()
 	    .uri(url)
+	    .header("Content-Type", "text/plain")
 	    .header("X-GEMINI-APIKEY", api_key)
-	    .header("X-GEMINI-PAYLOAD", &payload_str)
-	    .header("X-GEMINI-SIGNATURE",&signature)
+	    .header("X-GEMINI-PAYLOAD", &payload)
+	    .header("X-GEMINI-SIGNATURE", &signature)
 	    .body(()).unwrap();
 
 	let (stream, _resp) = connect_async(req)
 	    .await
-	    .map_err(GError::Websocket)?;
+	    .map_err(GError::Websocket).expect("connect-async");
 
 	let stream = stream
 	    .try_filter(|msg| future::ready(msg.is_text()))

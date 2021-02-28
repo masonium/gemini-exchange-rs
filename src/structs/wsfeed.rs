@@ -2,7 +2,7 @@ use serde::Deserialize;
 use serde_tuple::Deserialize_tuple;
 use crate::structs::OrderSide;
 use crate::types::GError;
-use crate::structs::order::order_side_lowercase;
+use crate::structs::order::{order_side_lowercase, order_id_from_string, OrderId, OrderOption};
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Trade {
@@ -32,7 +32,6 @@ pub struct Candle {
 
 #[derive(Deserialize, Debug)]
 pub struct AuctionEvent {
-
 }
 
 #[derive(Deserialize, Debug)]
@@ -82,6 +81,43 @@ pub struct Ack {
 }
 
 #[derive(Deserialize, Debug)]
+pub struct OrderStatus {
+    #[serde(rename="type")]
+    pub event_type: String,
+
+    #[serde(deserialize_with="order_id_from_string")]
+    pub order_id: OrderId,
+    pub client_order_id: Option<String>,
+    pub event_id: Option<String>,
+    pub api_session: Option<String>,
+
+    pub symbol: String,
+
+    #[serde(deserialize_with="order_side_lowercase")]
+    pub side: OrderSide,
+    pub behavior: Option<OrderOption>,
+
+    pub order_type: String,
+    pub timestampms: u64,
+
+    pub is_live: bool,
+    pub is_cancelled: bool,
+    pub is_hidden: bool,
+
+    pub avg_execution_price: String,
+
+    pub executed_amount: String,
+    pub remaining_amount: String,
+    pub original_amount: String,
+
+
+    pub price: String,
+    pub total_spend: Option<String>,
+
+    pub reason: Option<String>
+}
+
+#[derive(Deserialize, Debug)]
 #[serde(tag = "type")]
 #[serde(rename_all = "snake_case")]
 pub enum InputOrderMessage {
@@ -93,7 +129,8 @@ pub enum InputOrderMessage {
 pub enum OrderMessage {
     Heartbeat(Heartbeat),
     SubscriptionAck(Ack),
-    InternalError(GError)
+    InternalError(GError),
+    Orders(Vec<OrderStatus>)
 }
 
 impl From<InputOrderMessage> for OrderMessage {

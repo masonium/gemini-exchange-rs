@@ -52,7 +52,7 @@ pub enum OrderSide {
 
 #[derive(Deserialize, Serialize, Debug, PartialEq, Eq, Clone, Copy)]
 #[serde(rename_all = "kebab-case")]
-pub enum OrderOptions {
+pub enum OrderOption {
     MakerOrCancel,
     ImmediateOrCancel,
     FillOrKill,
@@ -124,7 +124,7 @@ pub struct Order {
     side: OrderSide,
     symbol: String,
     client_order_id: String,
-    options: Vec<OrderOptions>,
+    options: Vec<OrderOption>,
 
     #[serde(rename="type")]
     order_type: OrderType,
@@ -145,7 +145,7 @@ impl Order {
 	let (size_str, price_str) = Self::format_prices(symbol, size, price);
 	let mut options = Vec::new();
 	if post_only {
-	    options.push(OrderOptions::MakerOrCancel);
+	    options.push(OrderOption::MakerOrCancel);
 	}
 	Order {
 	    price: price_str,
@@ -176,7 +176,7 @@ pub struct OrderResponse {
     #[serde(rename="type")]
     pub order_type: String,
 
-    pub options: Vec<OrderOptions>,
+    pub options: Vec<OrderOption>,
 
     pub is_live: bool,
     pub is_cancelled: bool,
