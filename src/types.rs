@@ -15,7 +15,10 @@ pub enum GError {
 	error: serde_json::Error,
 
 	data: String
-    }
+    },
+
+    #[error("websocket error: {0}")]
+    Websocket(#[source] tokio_tungstenite::tungstenite::Error)
 }
 
 /// Future repsonse from a client.

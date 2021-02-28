@@ -10,20 +10,14 @@ use hex::ToHex;
 use crate::types::{GError, Response};
 use crate::util::f64_from_string;
 use super::structs::order::{Order, OrderSide, OrderResponse, OrderId};
+use super::structs::private::Payload;
+
 
 pub struct Private {
     uri: String,
     api_key: String,
     api_secret: String,
     client: Client<HttpsConnector<HttpConnector>>
-}
-
-#[derive(Debug, Serialize)]
-struct Payload<T: Serialize> {
-    nonce: u64,
-    request: String,
-    #[serde(flatten)]
-    content: T
 }
 
 #[derive(Debug, Serialize)]
@@ -130,34 +124,23 @@ impl Private {
 	}
     }
 
-    /// Create a payload wrapping an existing (serializable) object.
-    fn payload<T: Serialize>(uri: &str, x: T) -> Payload<T> {
-	let nonce: i64 = chrono::Utc::now().timestamp_millis();
-
-	Payload {
-	    request: uri.to_string(),
-	    nonce: nonce as u64,
-	    content: x
-	}
-    }
-
     /// Return a list of recent trades.
     pub fn recent_trades(&self, symbol: &str) -> anyhow::Result<impl Response<Vec<AccountTrade>>> {
-	let pt = Self::payload("/v1/mytrades", PastTrades { symbol: symbol.to_string() });
+	let pt = Payload::wrap("/v1/mytrades", PastTrades { symbol: symbol.to_string() });
 	let req = self.request(&pt.request, &pt)?;
 	Ok(self.call_future(req))
     }
 
     /// Send a new order.
     pub fn new_order(&self, order: &Order) -> anyhow::Result<impl Response<OrderResponse>> {
-	let pt = Self::payload("/v1/order/new", order);
+	let pt = Payload::wrap("/v1/order/new", order);
 	let req = self.request(&pt.request, &pt)?;
 	Ok(self.call_future(req))
     }
 
     /// Cancel an order.
     pub fn cancel_order(&self, order_id: OrderId) -> anyhow::Result<impl Response<OrderResponse>> {
-	let pt = Self::payload("/v1/order/cancel", CancelRequest { order_id });
+	let pt = Payload::wrap("/v1/order/cancel", CancelRequest { order_id });
 	let req = self.request(&pt.request, &pt)?;
 	Ok(self.call_future(req))
     }

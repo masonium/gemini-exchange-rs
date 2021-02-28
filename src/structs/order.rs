@@ -44,13 +44,13 @@ where
 }
 
 /// Side of the order (buy or sell)
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
 pub enum OrderSide {
     Buy,
     Sell
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, PartialEq, Eq, Clone, Copy)]
 #[serde(rename_all = "kebab-case")]
 pub enum OrderOptions {
     MakerOrCancel,
