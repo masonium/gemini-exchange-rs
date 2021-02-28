@@ -7,7 +7,7 @@ use hyper_tls::HttpsConnector;
 use serde::Deserialize;
 use std::collections::HashMap;
 use crate::util::f64_from_string;
-use crate::types::{GError, Response};
+use crate::types::{GError, Result, Response};
 
 pub struct Public {
     uri: String,
@@ -60,7 +60,7 @@ impl Public {
     pub(crate) fn call_future<U>(
 	&self,
 	request: Request<Body>,
-    ) -> impl Future<Output = Result<U, GError>> + 'static
+    ) -> impl Future<Output = Result<U>> + 'static
     where
 	for<'de> U: serde::Deserialize<'de> + 'static,
     {
@@ -71,11 +71,11 @@ impl Public {
 	    let res = res.await.map_err(GError::Http)?;
 	    let body = to_bytes(res.into_body()).await.map_err(GError::Http)?;
 	    //log::debug!("RES: {:#?}", body);
-	    let res: Result<U, GError> = serde_json::from_slice(&body).map_err(|e| {
+	    let res: Result<U> = serde_json::from_slice(&body).map_err(|e| {
 		let err = serde_json::from_slice(&body);
 		let err = err.map(GError::Gemini).unwrap_or_else(|_| {
 		    let data = String::from_utf8(body.to_vec()).unwrap();
-		    GError::Serde { error: e, data }
+		    GError::SerdeDe { error: e, data }
 		});
 		err
 	    });

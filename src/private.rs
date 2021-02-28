@@ -7,10 +7,9 @@ use serde::{Serialize, Deserialize};
 use hyper_tls::HttpsConnector;
 use crypto::{hmac::Hmac, mac::Mac, sha2::Sha384};
 use hex::ToHex;
-use crate::types::{GError, Response};
-use crate::util::f64_from_string;
+use crate::types::{GError, Result, Response};
 use super::structs::order::{Order, OrderSide, OrderResponse, OrderId};
-use super::structs::private::Payload;
+use super::structs::private::{Payload, AccountBalance};
 
 
 pub struct Private {
@@ -30,19 +29,17 @@ struct CancelRequest {
     order_id: OrderId
 }
 
+
 #[derive(Debug, Deserialize)]
 pub struct AccountTrade {
-    #[serde(deserialize_with = "f64_from_string")]
-    price: f64,
+    price: String,
 
-    #[serde(deserialize_with = "f64_from_string")]
-    amount: f64,
+    amount: String,
     //timestamp:
     #[serde(rename="type")]
     side: OrderSide,
 
-    #[serde(deserialize_with = "f64_from_string")]
-    fee_amount: f64,
+    fee_amount: String,
     order_id: String
 }
 
@@ -80,10 +77,10 @@ impl Private {
     /// requests.
     ///
     /// Lifted pretty direectly from coinbase-pro-rs.
-    fn request<T: Serialize>(&self, uri: &str, body: &Payload<T>) -> anyhow::Result<Request<Body>> {
+    fn request<T: Serialize>(&self, uri: &str, body: &Payload<T>) -> Result<Request<Body>> {
 	let uri: Uri = (self.uri.to_string() + uri).parse().unwrap();
 
-	let payload_str = serde_json::to_string(&body)?;
+	let payload_str = serde_json::to_string(&body).map_err(GError::SerdeSer)?;
 	let payload = base64::encode(&payload_str);
 	let signature = Self::sign(&self.api_secret, &payload);
 
@@ -101,22 +98,20 @@ impl Private {
     pub(crate) fn call_future<U>(
 	&self,
 	request: Request<Body>,
-    ) -> impl Future<Output = Result<U, GError>> + 'static
+    ) -> impl Future<Output = Result<U>> + 'static
     where
 	for<'de> U: serde::Deserialize<'de> + 'static,
     {
-	//logo::debug!("REQ: {:?}", request);
-
 	let res = self.client.request(request);
 	async move {
 	    let res = res.await.map_err(GError::Http)?;
 	    let body = to_bytes(res.into_body()).await.map_err(GError::Http)?;
 
-	    let res: Result<U, GError> = serde_json::from_slice(&body).map_err(|e| {
+	    let res: Result<U> = serde_json::from_slice(&body).map_err(|e| {
 		let err = serde_json::from_slice(&body);
 		let err = err.map(GError::Gemini).unwrap_or_else(|_| {
 		    let data = String::from_utf8(body.to_vec()).unwrap();
-		    GError::Serde { error: e, data }
+		    GError::SerdeDe { error: e, data }
 		});
 		err
 	    });
@@ -125,22 +120,29 @@ impl Private {
     }
 
     /// Return a list of recent trades.
-    pub fn recent_trades(&self, symbol: &str) -> anyhow::Result<impl Response<Vec<AccountTrade>>> {
+    pub fn recent_trades(&self, symbol: &str) -> Result<impl Response<Vec<AccountTrade>>> {
 	let pt = Payload::wrap("/v1/mytrades", PastTrades { symbol: symbol.to_string() });
 	let req = self.request(&pt.request, &pt)?;
 	Ok(self.call_future(req))
     }
 
     /// Send a new order.
-    pub fn new_order(&self, order: &Order) -> anyhow::Result<impl Response<OrderResponse>> {
+    pub fn new_order(&self, order: &Order) -> Result<impl Response<OrderResponse>> {
 	let pt = Payload::wrap("/v1/order/new", order);
 	let req = self.request(&pt.request, &pt)?;
 	Ok(self.call_future(req))
     }
 
     /// Cancel an order.
-    pub fn cancel_order(&self, order_id: OrderId) -> anyhow::Result<impl Response<OrderResponse>> {
+    pub fn cancel_order(&self, order_id: OrderId) -> Result<impl Response<OrderResponse>> {
 	let pt = Payload::wrap("/v1/order/cancel", CancelRequest { order_id });
+	let req = self.request(&pt.request, &pt)?;
+	Ok(self.call_future(req))
+    }
+
+    /// Current balances
+    pub fn balances(&self) -> Result<impl Response<Vec<AccountBalance>>> {
+	let pt = Payload::empty("/v1/balances");
 	let req = self.request(&pt.request, &pt)?;
 	Ok(self.call_future(req))
     }

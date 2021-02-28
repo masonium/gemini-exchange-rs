@@ -33,7 +33,7 @@ fn convert_msg(msg: TMessage) -> Message {
 	TMessage::Text(str) => serde_json::from_str::<InputMessage>(&str)
 	    .map(|x| x.into())
 	    .unwrap_or_else(|e| {
-	    Message::InternalError(GError::Serde {
+	    Message::InternalError(GError::SerdeDe {
 		error: e,
 		data: str,
 	    })
@@ -49,7 +49,7 @@ pub trait GeminiSink: Sink<TMessage> + Unpin + Send {}
 
 
 impl WSFeed {
-    pub async fn connect_public_data(uri: &str, subscriptions: &[Subscription]) -> anyhow::Result<impl GeminiStream + GeminiSink, GError> {
+    pub async fn connect_public_data(uri: &str, subscriptions: &[Subscription]) -> Result<impl GeminiStream + GeminiSink, GError> {
 	let url = uri.to_string() + "/v2/marketdata";
 	let sub = Subscribe {
 	    sub_type: "subscribe".to_string(),
