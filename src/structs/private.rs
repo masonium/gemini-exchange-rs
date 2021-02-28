@@ -38,6 +38,6 @@ pub struct AccountBalance {
     pub currency: String,
     pub amount: String,
     pub available: String,
-    #[serde(rename="availableForWithdrawl")]
-    pub available_for_withdrawl: String,
+    #[serde(rename="availableForWithdrawal")]
+    pub available_for_withdrawal: String,
 }
