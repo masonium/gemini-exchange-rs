@@ -1,5 +1,6 @@
 //! Structures used by the private REST client and authroized Websocket feeds.
 use serde::{Serialize, Deserialize};
+use crate::structs::order::{OrderId, OrderSide};
 
 /// Payload directly deliverable to the Gemini API, including common
 /// wrapper fields.
@@ -40,4 +41,41 @@ pub struct AccountBalance {
     pub available: String,
     #[serde(rename="availableForWithdrawal")]
     pub available_for_withdrawal: String,
+}
+
+
+#[derive(Debug, Serialize)]
+pub(crate) struct PastTrades {
+    pub(crate) symbol: String
+}
+
+#[derive(Debug, Serialize)]
+pub(crate) struct CancelRequest {
+    pub(crate) order_id: OrderId
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AccountTrade {
+    price: String,
+
+    amount: String,
+    //timestamp:
+    #[serde(rename="type")]
+    side: OrderSide,
+
+    fee_amount: String,
+    order_id: String
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CancelResponse {
+    result: String,
+    details: CancelDetails
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all="camelCase")]
+pub struct CancelDetails {
+    cancel_rejects: Vec<OrderId>,
+    cancelled_orders: Vec<OrderId>
 }

@@ -15,9 +15,9 @@ pub struct Trade {
 #[derive(Deserialize_tuple, Debug, Clone)]
 pub struct Level2Change {
     #[serde(deserialize_with = "order_side_lowercase")]
-    order: OrderSide,
-    price: String,
-    quantity: String
+    pub order: OrderSide,
+    pub price: String,
+    pub quantity: String
 }
 
 #[derive(Deserialize, Debug)]
@@ -36,10 +36,10 @@ pub struct AuctionEvent {
 
 #[derive(Deserialize, Debug)]
 pub struct Level2 {
-    symbol: String,
-    changes: Option<Vec<Level2Change>>,
-    trades: Option<Vec<Trade>>,
-    auction_events: Option<Vec<AuctionEvent>>
+    pub symbol: String,
+    pub changes: Option<Vec<Level2Change>>,
+    pub trades: Option<Vec<Trade>>,
+    pub auction_events: Option<Vec<AuctionEvent>>
 }
 
 #[derive(Deserialize, Debug)]
@@ -80,10 +80,46 @@ pub struct Ack {
     subscription_id: String,
 }
 
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
+#[serde(rename_all = "snake_case")]
+pub enum OrderEventType {
+    Initial,
+    Accepted,
+    Rejected,
+    Booked,
+    Fill,
+    Cancelled,
+    CancelRejected,
+    Closed
+}
+
+#[derive(Deserialize, Debug, Clone, Copy)]
+pub enum FillLiquidity {
+    Maker,
+    Taker,
+    Auction,
+    Block,
+    IndicatorOfInterest
+}
+
+#[derive(Deserialize, Debug)]
+pub struct Fill {
+    pub trade_id: String,
+    pub liquidity: FillLiquidity,
+    pub price: String,
+    pub amount: String,
+    pub fee: String,
+    pub fee_currency: String
+}
+
+fn zero_price() -> String {
+    "0.00".to_string()
+}
+
 #[derive(Deserialize, Debug)]
 pub struct OrderStatus {
     #[serde(rename="type")]
-    pub event_type: String,
+    pub event_type: OrderEventType,
 
     #[serde(deserialize_with="order_id_from_string")]
     pub order_id: OrderId,
@@ -104,17 +140,22 @@ pub struct OrderStatus {
     pub is_cancelled: bool,
     pub is_hidden: bool,
 
+    #[serde(default="zero_price")]
     pub avg_execution_price: String,
 
+    #[serde(default="zero_price")]
     pub executed_amount: String,
-    pub remaining_amount: String,
-    pub original_amount: String,
 
+    #[serde(default="zero_price")]
+    pub remaining_amount: String,
+
+    pub original_amount: String,
 
     pub price: String,
     pub total_spend: Option<String>,
 
-    pub reason: Option<String>
+    pub reason: Option<String>,
+    pub fill: Option<Fill>
 }
 
 #[derive(Deserialize, Debug)]

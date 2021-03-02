@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize, Serializer, Deserializer, de::{self, Visitor
 use std::fmt;
 
 /// order id
-#[derive(Deserialize, Serialize, Clone, Copy, Debug)]
+#[derive(Deserialize, Serialize, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct OrderId(u64);
 
 impl fmt::Display for OrderId {
@@ -187,5 +187,5 @@ pub struct OrderResponse {
     pub remaining_amount: String,
     pub original_amount: String,
 
-    pub is_hidden: bool
+    pub is_hidden: bool,
 }
