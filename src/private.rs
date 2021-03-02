@@ -3,13 +3,13 @@ use hyper::{Client, Body, Request, Uri, body::to_bytes};
 use futures::Future;
 use hyper::client::HttpConnector;
 use std::time::Duration;
-use serde::{Serialize, Deserialize};
+use serde::Serialize;
 use hyper_tls::HttpsConnector;
 use crypto::{hmac::Hmac, mac::Mac, sha2::Sha384};
 use hex::ToHex;
-use crate::types::{GError, Result, Response};
-use super::structs::order::{Order, OrderSide, OrderResponse, OrderId};
-use super::structs::private::{Payload, AccountBalance};
+use crate::{structs::private::CancelResponse, types::{GError, Result, Response}};
+use super::structs::order::{Order, OrderResponse, OrderId};
+use super::structs::private::{Payload, AccountBalance, AccountTrade, CancelRequest, PastTrades};
 
 
 pub struct Private {
@@ -17,30 +17,6 @@ pub struct Private {
     api_key: String,
     api_secret: String,
     client: Client<HttpsConnector<HttpConnector>>
-}
-
-#[derive(Debug, Serialize)]
-struct PastTrades {
-    symbol: String
-}
-
-#[derive(Debug, Serialize)]
-struct CancelRequest {
-    order_id: OrderId
-}
-
-
-#[derive(Debug, Deserialize)]
-pub struct AccountTrade {
-    price: String,
-
-    amount: String,
-    //timestamp:
-    #[serde(rename="type")]
-    side: OrderSide,
-
-    fee_amount: String,
-    order_id: String
 }
 
 impl Private {
@@ -77,10 +53,10 @@ impl Private {
     /// requests.
     ///
     /// Lifted pretty direectly from coinbase-pro-rs.
-    fn request<T: Serialize>(&self, uri: &str, body: &Payload<T>) -> Result<Request<Body>> {
+    fn request<T: Serialize>(&self, uri: &str, body: &Payload<T>) -> Request<Body> {
 	let uri: Uri = (self.uri.to_string() + uri).parse().unwrap();
 
-	let payload_str = serde_json::to_string(&body).map_err(GError::SerdeSer)?;
+	let payload_str = serde_json::to_string(&body).expect("serialization failure");
 	let payload = base64::encode(&payload_str);
 	let signature = Self::sign(&self.api_secret, &payload);
 
@@ -91,7 +67,7 @@ impl Private {
 	    .header("X-GEMINI-PAYLOAD", payload)
 	    .header("X-GEMINI-SIGNATURE", signature)
 	    .header("Cache-Control", "no-cache");
-	Ok(req.body(Body::empty()).unwrap())
+	req.body(Body::empty()).unwrap()
     }
 
     /// Lifted pretty directly from coinbase-pro-rs
@@ -119,31 +95,38 @@ impl Private {
 	}
     }
 
+    /// Balances
+    pub fn balances(&self) -> impl Response<Vec<AccountBalance>> {
+	let pt = Payload::empty("/v1/balances");
+	let req = self.request(&pt.request, &pt);
+	self.call_future(req)
+    }
+
     /// Return a list of recent trades.
-    pub fn recent_trades(&self, symbol: &str) -> Result<impl Response<Vec<AccountTrade>>> {
+    pub fn recent_trades(&self, symbol: &str) -> impl Response<Vec<AccountTrade>> {
 	let pt = Payload::wrap("/v1/mytrades", PastTrades { symbol: symbol.to_string() });
-	let req = self.request(&pt.request, &pt)?;
-	Ok(self.call_future(req))
+	let req = self.request(&pt.request, &pt);
+	self.call_future(req)
     }
 
     /// Send a new order.
-    pub fn new_order(&self, order: &Order) -> Result<impl Response<OrderResponse>> {
+    pub fn new_order(&self, order: &Order) -> impl Response<OrderResponse> {
 	let pt = Payload::wrap("/v1/order/new", order);
-	let req = self.request(&pt.request, &pt)?;
-	Ok(self.call_future(req))
+	let req = self.request(&pt.request, &pt);
+	self.call_future(req)
     }
 
     /// Cancel an order.
-    pub fn cancel_order(&self, order_id: OrderId) -> Result<impl Response<OrderResponse>> {
+    pub fn cancel_order(&self, order_id: OrderId) -> impl Response<OrderResponse> {
 	let pt = Payload::wrap("/v1/order/cancel", CancelRequest { order_id });
-	let req = self.request(&pt.request, &pt)?;
-	Ok(self.call_future(req))
+	let req = self.request(&pt.request, &pt);
+	self.call_future(req)
     }
 
-    /// Current balances
-    pub fn balances(&self) -> Result<impl Response<Vec<AccountBalance>>> {
-	let pt = Payload::empty("/v1/balances");
-	let req = self.request(&pt.request, &pt)?;
-	Ok(self.call_future(req))
+    /// Cancel all orders.
+    pub fn cancel_all_orders(&self) -> impl Response<CancelResponse> {
+	let pt = Payload::empty("/v1/order/cancel/all");
+	let req = self.request(&pt.request, &pt);
+	self.call_future(req)
     }
 }
