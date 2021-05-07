@@ -9,21 +9,21 @@ impl<'de> Visitor<'de> for F64InQuotes {
     type Value = f64;
 
     fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
-	f.write_str("f64 as a number or string")
+        f.write_str("f64 as a number or string")
     }
 
     fn visit_f64<E>(self, id: f64) -> Result<Self::Value, E>
     where
-	E: de::Error,
+        E: de::Error,
     {
-	Ok(id)
+        Ok(id)
     }
 
     fn visit_str<E>(self, s: &str) -> Result<Self::Value, E>
     where
-	E: de::Error,
+        E: de::Error,
     {
-	s.parse().map_err(de::Error::custom)
+        s.parse().map_err(de::Error::custom)
     }
 }
 

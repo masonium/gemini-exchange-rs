@@ -1,12 +1,12 @@
-pub mod public;
 pub mod private;
-mod util;
+pub mod public;
 pub mod structs;
 pub mod types;
+mod util;
 pub mod wsfeed;
 
-pub use public::Public;
 pub use private::Private;
+pub use public::Public;
 
 pub const GEMINI_SANDBOX_URL: &'static str = "https://api.sandbox.gemini.com";
 pub const GEMINI_SANDBOX_WS_URL: &'static str = "wss://api.sandbox.gemini.com";

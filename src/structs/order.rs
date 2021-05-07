@@ -1,4 +1,7 @@
-use serde::{Deserialize, Serialize, Serializer, Deserializer, de::{self, Visitor}};
+use serde::{
+    de::{self, Visitor},
+    Deserialize, Deserializer, Serialize, Serializer,
+};
 use std::fmt;
 
 /// order id
@@ -7,7 +10,7 @@ pub struct OrderId(u64);
 
 impl fmt::Display for OrderId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-	write!(f, "{}", self.0)
+        write!(f, "{}", self.0)
     }
 }
 
@@ -16,23 +19,22 @@ impl<'de> Visitor<'de> for OrderIdInQuotes {
     type Value = OrderId;
 
     fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
-	f.write_str("i64 as a number or string")
+        f.write_str("i64 as a number or string")
     }
 
     fn visit_u64<E>(self, id: u64) -> Result<Self::Value, E>
     where
-	E: de::Error,
+        E: de::Error,
     {
-	Ok(OrderId(id))
+        Ok(OrderId(id))
     }
 
     fn visit_str<E>(self, s: &str) -> Result<Self::Value, E>
     where
-	E: de::Error,
+        E: de::Error,
     {
-	s.parse::<u64>().map(OrderId).map_err(de::Error::custom)
+        s.parse::<u64>().map(OrderId).map_err(de::Error::custom)
     }
-
 }
 
 /// Parse an `OrderId` from a string or u64 representation.
@@ -47,7 +49,7 @@ where
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
 pub enum OrderSide {
     Buy,
-    Sell
+    Sell,
 }
 
 #[derive(Deserialize, Serialize, Debug, PartialEq, Eq, Clone, Copy)]
@@ -57,15 +59,15 @@ pub enum OrderOption {
     ImmediateOrCancel,
     FillOrKill,
     AuctionOnly,
-    IndicationOfInterest
+    IndicationOfInterest,
 }
 
 impl OrderSide {
     fn lowercase<S: Serializer>(os: &OrderSide, s: S) -> Result<S::Ok, S::Error> {
-	s.serialize_str(match os {
-	    OrderSide::Buy => "buy",
-	    OrderSide::Sell => "sell",
-	})
+        s.serialize_str(match os {
+            OrderSide::Buy => "buy",
+            OrderSide::Sell => "sell",
+        })
     }
 }
 
@@ -75,18 +77,18 @@ impl<'de> Visitor<'de> for LowercaseOrderSide {
     type Value = OrderSide;
 
     fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
-	f.write_str("'buy' or 'sell' as lowercase")
+        f.write_str("'buy' or 'sell' as lowercase")
     }
 
     fn visit_str<E>(self, s: &str) -> Result<Self::Value, E>
     where
-	E: de::Error,
+        E: de::Error,
     {
-	match s {
-	    "buy" => Ok(OrderSide::Buy),
-	    "sell" => Ok(OrderSide::Sell),
-	    _ => Err(de::Error::custom(s))
-	}
+        match s {
+            "buy" => Ok(OrderSide::Buy),
+            "sell" => Ok(OrderSide::Sell),
+            _ => Err(de::Error::custom(s)),
+        }
     }
 }
 
@@ -100,18 +102,18 @@ where
 #[derive(Debug)]
 pub enum OrderType {
     Limit,
-    StopLimit
+    StopLimit,
 }
 
 impl Serialize for OrderType {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-	S: Serializer,
+        S: Serializer,
     {
-	serializer.serialize_str(match self {
-	    OrderType::Limit => "exchange limit",
-	    OrderType::StopLimit => "exchange stop limit",
-	})
+        serializer.serialize_str(match self {
+            OrderType::Limit => "exchange limit",
+            OrderType::StopLimit => "exchange stop limit",
+        })
     }
 }
 
@@ -120,49 +122,55 @@ pub struct Order {
     price: String,
     amount: String,
 
-    #[serde(serialize_with="OrderSide::lowercase")]
+    #[serde(serialize_with = "OrderSide::lowercase")]
     side: OrderSide,
     symbol: String,
     client_order_id: String,
     options: Vec<OrderOption>,
 
-    #[serde(rename="type")]
+    #[serde(rename = "type")]
     order_type: OrderType,
 }
 
 impl Order {
     fn format_prices(symbol: &str, size: f64, price: f64) -> (String, String) {
-	match symbol {
-	    "btcusd" => (format!("{:.8}", size), format!("{:.2}", price)),
-	    "ltcusd" => (format!("{:.5}", size), format!("{:.2}", price)),
-	    "ethusd" => (format!("{:.6}", size), format!("{:.2}", price)),
-	    _ => panic!("unknown symbol for formatting: {}", symbol)
-	}
+        match symbol {
+            "btcusd" => (format!("{:.8}", size), format!("{:.2}", price)),
+            "ltcusd" => (format!("{:.5}", size), format!("{:.2}", price)),
+            "ethusd" => (format!("{:.6}", size), format!("{:.2}", price)),
+            _ => panic!("unknown symbol for formatting: {}", symbol),
+        }
     }
 
-    pub fn limit(symbol: &str, client_oid: String,
-		 side: OrderSide, size: f64, price: f64, post_only: bool) -> Order {
-	let (size_str, price_str) = Self::format_prices(symbol, size, price);
-	let mut options = Vec::new();
-	if post_only {
-	    options.push(OrderOption::MakerOrCancel);
-	}
-	Order {
-	    price: price_str,
-	    amount: size_str,
-	    side,
-	    symbol: symbol.to_string(),
-	    client_order_id: client_oid,
-	    options,
-	    order_type: OrderType::Limit
-	}
+    pub fn limit(
+        symbol: &str,
+        client_oid: String,
+        side: OrderSide,
+        size: f64,
+        price: f64,
+        post_only: bool,
+    ) -> Order {
+        let (size_str, price_str) = Self::format_prices(symbol, size, price);
+        let mut options = Vec::new();
+        if post_only {
+            options.push(OrderOption::MakerOrCancel);
+        }
+        Order {
+            price: price_str,
+            amount: size_str,
+            side,
+            symbol: symbol.to_string(),
+            client_order_id: client_oid,
+            options,
+            order_type: OrderType::Limit,
+        }
     }
 }
 
 /// Response from creating or cancelling an order.
 #[derive(Deserialize, Debug)]
 pub struct OrderResponse {
-    #[serde(deserialize_with="order_id_from_string")]
+    #[serde(deserialize_with = "order_id_from_string")]
     pub order_id: OrderId,
     pub client_order_id: Option<String>,
     pub symbol: String,
@@ -170,10 +178,10 @@ pub struct OrderResponse {
     pub price: String,
     pub avg_execution_price: String,
 
-    #[serde(deserialize_with="order_side_lowercase")]
+    #[serde(deserialize_with = "order_side_lowercase")]
     pub side: OrderSide,
 
-    #[serde(rename="type")]
+    #[serde(rename = "type")]
     pub order_type: String,
 
     pub options: Vec<OrderOption>,

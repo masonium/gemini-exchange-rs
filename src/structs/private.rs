@@ -1,6 +1,6 @@
 //! Structures used by the private REST client and authroized Websocket feeds.
-use serde::{Serialize, Deserialize};
 use crate::structs::order::{OrderId, OrderSide};
+use serde::{Deserialize, Serialize};
 
 /// Payload directly deliverable to the Gemini API, including common
 /// wrapper fields.
@@ -9,29 +9,28 @@ pub(crate) struct Payload<T: Serialize> {
     nonce: u64,
     pub(crate) request: String,
     #[serde(flatten)]
-    content: T
+    content: T,
 }
 
 impl<T: Serialize> Payload<T> {
     /// Return a payload wrapping a deserializable structure.
     pub fn wrap(uri: &str, x: T) -> Payload<T> {
-	let nonce: i64 = chrono::Utc::now().timestamp_millis();
+        let nonce: i64 = chrono::Utc::now().timestamp_millis();
 
-	Payload {
-	    request: uri.to_string(),
-	    nonce: nonce as u64,
-	    content: x
-	}
+        Payload {
+            request: uri.to_string(),
+            nonce: nonce as u64,
+            content: x,
+        }
     }
 }
 
 impl Payload<()> {
     /// Return a payload with no internal contents.
     pub fn empty(uri: &str) -> Payload<()> {
-	Self::wrap(uri, ())
+        Self::wrap(uri, ())
     }
 }
-
 
 /// Represent the current balance for a particular symbol
 #[derive(Debug, Deserialize)]
@@ -39,10 +38,9 @@ pub struct AccountBalance {
     pub currency: String,
     pub amount: String,
     pub available: String,
-    #[serde(rename="availableForWithdrawal")]
+    #[serde(rename = "availableForWithdrawal")]
     pub available_for_withdrawal: String,
 }
-
 
 #[derive(Debug, Deserialize)]
 pub struct NotionalVolume {
@@ -64,12 +62,12 @@ pub struct NotionalVolume {
 
 #[derive(Debug, Serialize)]
 pub(crate) struct PastTrades {
-    pub(crate) symbol: String
+    pub(crate) symbol: String,
 }
 
 #[derive(Debug, Serialize)]
 pub(crate) struct CancelRequest {
-    pub(crate) order_id: OrderId
+    pub(crate) order_id: OrderId,
 }
 
 #[derive(Debug, Deserialize)]
@@ -78,22 +76,22 @@ pub struct AccountTrade {
 
     amount: String,
     //timestamp:
-    #[serde(rename="type")]
+    #[serde(rename = "type")]
     side: OrderSide,
 
     fee_amount: String,
-    order_id: String
+    order_id: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct CancelResponse {
     result: String,
-    details: CancelDetails
+    details: CancelDetails,
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all="camelCase")]
+#[serde(rename_all = "camelCase")]
 pub struct CancelDetails {
     cancel_rejects: Vec<OrderId>,
-    cancelled_orders: Vec<OrderId>
+    cancelled_orders: Vec<OrderId>,
 }

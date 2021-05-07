@@ -1,15 +1,15 @@
-use serde::Deserialize;
-use serde_tuple::Deserialize_tuple;
+use crate::structs::order::{order_id_from_string, order_side_lowercase, OrderId, OrderOption};
 use crate::structs::OrderSide;
 use crate::types::GError;
-use crate::structs::order::{order_side_lowercase, order_id_from_string, OrderId, OrderOption};
+use serde::Deserialize;
+use serde_tuple::Deserialize_tuple;
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Trade {
     price: String,
     quantity: String,
     #[serde(deserialize_with = "order_side_lowercase")]
-    side: OrderSide
+    side: OrderSide,
 }
 
 #[derive(Deserialize_tuple, Debug, Clone)]
@@ -17,7 +17,7 @@ pub struct Level2Change {
     #[serde(deserialize_with = "order_side_lowercase")]
     pub order: OrderSide,
     pub price: String,
-    pub quantity: String
+    pub quantity: String,
 }
 
 #[derive(Deserialize, Debug)]
@@ -27,24 +27,22 @@ pub struct Candle {
     high: String,
     low: String,
     close: String,
-    volume: String
+    volume: String,
 }
 
 #[derive(Deserialize, Debug)]
-pub struct AuctionEvent {
-}
+pub struct AuctionEvent {}
 
 #[derive(Deserialize, Debug)]
 pub struct Level2 {
     pub symbol: String,
     pub changes: Option<Vec<Level2Change>>,
     pub trades: Option<Vec<Trade>>,
-    pub auction_events: Option<Vec<AuctionEvent>>
+    pub auction_events: Option<Vec<AuctionEvent>>,
 }
 
 #[derive(Deserialize, Debug)]
-pub struct Heartbeat {
-}
+pub struct Heartbeat {}
 
 #[derive(Deserialize, Debug)]
 #[serde(tag = "type")]
@@ -52,7 +50,7 @@ pub struct Heartbeat {
 pub enum InputMDMessage {
     L2Updates(Level2),
     Trade(Trade),
-    Heartbeat(Heartbeat)
+    Heartbeat(Heartbeat),
 }
 
 #[derive(Debug)]
@@ -60,16 +58,16 @@ pub enum MarketDataMessage {
     Level2(Level2),
     Trade(Trade),
     Heartbeat(Heartbeat),
-    InternalError(GError)
+    InternalError(GError),
 }
 
 impl From<InputMDMessage> for MarketDataMessage {
     fn from(im: InputMDMessage) -> Self {
-	match im {
-	    InputMDMessage::L2Updates(l2) => MarketDataMessage::Level2(l2),
-	    InputMDMessage::Trade(t) => MarketDataMessage::Trade(t),
-	    InputMDMessage::Heartbeat(h) => MarketDataMessage::Heartbeat(h)
-	}
+        match im {
+            InputMDMessage::L2Updates(l2) => MarketDataMessage::Level2(l2),
+            InputMDMessage::Trade(t) => MarketDataMessage::Trade(t),
+            InputMDMessage::Heartbeat(h) => MarketDataMessage::Heartbeat(h),
+        }
     }
 }
 
@@ -90,7 +88,7 @@ pub enum OrderEventType {
     Fill,
     Cancelled,
     CancelRejected,
-    Closed
+    Closed,
 }
 
 #[derive(Deserialize, Debug, Clone, Copy)]
@@ -99,7 +97,7 @@ pub enum FillLiquidity {
     Taker,
     Auction,
     Block,
-    IndicatorOfInterest
+    IndicatorOfInterest,
 }
 
 #[derive(Deserialize, Debug)]
@@ -109,7 +107,7 @@ pub struct Fill {
     pub price: String,
     pub amount: String,
     pub fee: String,
-    pub fee_currency: String
+    pub fee_currency: String,
 }
 
 fn zero_price() -> String {
@@ -118,10 +116,10 @@ fn zero_price() -> String {
 
 #[derive(Deserialize, Debug)]
 pub struct OrderStatus {
-    #[serde(rename="type")]
+    #[serde(rename = "type")]
     pub event_type: OrderEventType,
 
-    #[serde(deserialize_with="order_id_from_string")]
+    #[serde(deserialize_with = "order_id_from_string")]
     pub order_id: OrderId,
     pub client_order_id: Option<String>,
     pub event_id: Option<String>,
@@ -129,7 +127,7 @@ pub struct OrderStatus {
 
     pub symbol: String,
 
-    #[serde(deserialize_with="order_side_lowercase")]
+    #[serde(deserialize_with = "order_side_lowercase")]
     pub side: OrderSide,
     pub behavior: Option<OrderOption>,
 
@@ -140,13 +138,13 @@ pub struct OrderStatus {
     pub is_cancelled: bool,
     pub is_hidden: bool,
 
-    #[serde(default="zero_price")]
+    #[serde(default = "zero_price")]
     pub avg_execution_price: String,
 
-    #[serde(default="zero_price")]
+    #[serde(default = "zero_price")]
     pub executed_amount: String,
 
-    #[serde(default="zero_price")]
+    #[serde(default = "zero_price")]
     pub remaining_amount: String,
 
     pub original_amount: String,
@@ -155,7 +153,7 @@ pub struct OrderStatus {
     pub total_spend: Option<String>,
 
     pub reason: Option<String>,
-    pub fill: Option<Fill>
+    pub fill: Option<Fill>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -171,14 +169,14 @@ pub enum OrderMessage {
     Heartbeat(Heartbeat),
     SubscriptionAck(Ack),
     InternalError(GError),
-    Orders(Vec<OrderStatus>)
+    Orders(Vec<OrderStatus>),
 }
 
 impl From<InputOrderMessage> for OrderMessage {
     fn from(im: InputOrderMessage) -> Self {
-	match im {
-	    InputOrderMessage::SubscriptionAck(t) => OrderMessage::SubscriptionAck(t),
-	    InputOrderMessage::Heartbeat(h) => OrderMessage::Heartbeat(h)
-	}
+        match im {
+            InputOrderMessage::SubscriptionAck(t) => OrderMessage::SubscriptionAck(t),
+            InputOrderMessage::Heartbeat(h) => OrderMessage::Heartbeat(h),
+        }
     }
 }

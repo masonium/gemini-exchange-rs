@@ -1,6 +1,6 @@
-use thiserror::Error;
 use futures::Future;
 use serde::Deserialize;
+use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum GError {
@@ -12,24 +12,24 @@ pub enum GError {
 
     #[error("deseriaization error: {error}\n{data}")]
     SerdeDe {
-	#[source]
-	error: serde_json::Error,
+        #[source]
+        error: serde_json::Error,
 
-	data: String
+        data: String,
     },
 
     #[error("Serialization error: {0}")]
     SerdeSer(#[source] serde_json::Error),
 
     #[error("websocket error: {0}")]
-    Websocket(#[source] tokio_tungstenite::tungstenite::Error)
+    Websocket(#[source] tokio_tungstenite::tungstenite::Error),
 }
 
 #[derive(Debug, Deserialize)]
 pub struct GeminiResponseError {
     result: String,
     reason: String,
-    message: String
+    message: String,
 }
 
 pub type Result<T> = core::result::Result<T, GError>;
@@ -39,6 +39,9 @@ pub trait Response<A: Sized>: Future<Output = Result<A>> {
     type Result: Sized;
 }
 
-impl<T, A: Sized> Response<A> for T where T: Future<Output = Result<A>> {
+impl<T, A: Sized> Response<A> for T
+where
+    T: Future<Output = Result<A>>,
+{
     type Result = A;
 }
