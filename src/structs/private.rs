@@ -44,6 +44,24 @@ pub struct AccountBalance {
 }
 
 
+#[derive(Debug, Deserialize)]
+pub struct NotionalVolume {
+    date: String,
+    last_updated_ms: u64,
+    web_maker_fee_bps: u32,
+    web_taker_fee_bps: u32,
+    web_auction_fee_bps: u32,
+    api_maker_fee_bps: u32,
+    api_taker_fee_bps: u32,
+    api_auction_fee_bps: u32,
+    fix_maker_fee_bps: u32,
+    fix_taker_fee_bps: u32,
+    fix_auction_fee_bps: u32,
+    block_maker_fee_bps: u32,
+    block_taker_fee_bps: u32,
+    notional_30d_volume: u32,
+}
+
 #[derive(Debug, Serialize)]
 pub(crate) struct PastTrades {
     pub(crate) symbol: String

@@ -7,7 +7,7 @@ use serde::Serialize;
 use hyper_tls::HttpsConnector;
 use crypto::{hmac::Hmac, mac::Mac, sha2::Sha384};
 use hex::ToHex;
-use crate::{structs::private::CancelResponse, types::{GError, Result, Response}};
+use crate::{structs::private::{CancelResponse, NotionalVolume}, types::{GError, Result, Response}};
 use super::structs::order::{Order, OrderResponse, OrderId};
 use super::structs::private::{Payload, AccountBalance, AccountTrade, CancelRequest, PastTrades};
 
@@ -98,6 +98,13 @@ impl Private {
     /// Balances
     pub fn balances(&self) -> impl Response<Vec<AccountBalance>> {
 	let pt = Payload::empty("/v1/balances");
+	let req = self.request(&pt.request, &pt);
+	self.call_future(req)
+    }
+
+    /// Balances
+    pub fn notional_volume(&self) -> impl Response<NotionalVolume> {
+	let pt = Payload::empty("/v1/notionalvolume");
 	let req = self.request(&pt.request, &pt);
 	self.call_future(req)
     }
