@@ -70,11 +70,10 @@ impl Public {
             //log::debug!("RES: {:#?}", body);
             let res: Result<U> = serde_json::from_slice(&body).map_err(|e| {
                 let err = serde_json::from_slice(&body);
-                let err = err.map(GError::Gemini).unwrap_or_else(|_| {
+                err.map(GError::Gemini).unwrap_or_else(|_| {
                     let data = String::from_utf8(body.to_vec()).unwrap();
                     GError::SerdeDe { error: e, data }
-                });
-                err
+                })
             });
             res
         }

@@ -7,7 +7,6 @@ use crate::{structs::private::Payload, Private};
 use futures::{future, Sink, Stream};
 use futures_util::{sink::SinkExt, stream::TryStreamExt};
 use serde::Serialize;
-use serde_json;
 use tokio_tungstenite::{connect_async, tungstenite::Message as TMessage};
 
 pub struct WSFeed;
@@ -78,7 +77,7 @@ impl WSFeed {
         let url = uri.to_string() + "/v2/marketdata";
         let sub = Subscribe {
             sub_type: "subscribe".to_string(),
-            subscriptions: subscriptions.iter().cloned().collect(),
+            subscriptions: subscriptions.to_vec()
         };
 
         let (stream, _resp) = connect_async(url).await.map_err(GError::Websocket)?;
